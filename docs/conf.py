@@ -55,8 +55,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"partridge"
-copyright = u"2017, Remix"
+project = "partridge"
+copyright = "2026, Remix"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -206,7 +206,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ("index", "partridge.tex", u"partridge Documentation", u"Danny Whalen", "manual")
+    ("index", "partridge.tex", "partridge Documentation", "Danny Whalen", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -234,7 +234,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "partridge", u"partridge Documentation", [u"Danny Whalen"], 1)]
+man_pages = [("index", "partridge", "partridge Documentation", ["Danny Whalen"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -249,11 +249,10 @@ texinfo_documents = [
     (
         "index",
         "partridge",
-        u"partridge Documentation",
-        u"Danny Whalen",
+        "partridge Documentation",
+        "Danny Whalen",
         "partridge",
-        "One line description of project.",
-        "Miscellaneous",
+        "GTFS management",
     )
 ]
 

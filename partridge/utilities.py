@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, Optional, Set, BinaryIO, Union, Generator
+from typing import Any, Iterable, Optional, Set, BinaryIO, Union, Generator
 
 from charset_normalizer import detect
 import networkx as nx
@@ -59,7 +59,8 @@ def detect_encoding(f: BinaryIO, limit: int = 2500) -> str:
         return "utf-8"
 
     f.seek(0)
-    return detect(f.read())["encoding"]
+    encoding = detect(f.read())["encoding"]
+    return encoding if encoding is not None else "utf-8"
 
 
 def empty_df(columns: Optional[Iterable[str]] = None) -> pl.DataFrame:

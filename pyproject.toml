@@ -36,8 +36,7 @@ full = ["geopandas"]
 [dependency-groups]
 dev = [
     "pytest>=7.0.0",
-    "black",
-    "flake8",
+    "ruff",
     "mypy",
     "coverage",
     "sphinx",
@@ -50,6 +49,3 @@ packages = ["partridge"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-[tool.flake8]
-exclude = ["docs"]

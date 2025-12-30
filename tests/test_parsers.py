@@ -1,7 +1,7 @@
 import datetime
-import numpy as np
+import math
+import polars as pl
 import pytest
-
 from partridge.parsers import parse_time, parse_date, vparse_time, vparse_date
 
 
@@ -23,13 +23,22 @@ def test_vparse_date():
     datestrs = ["20990101", "20990102"]
     dateobjs = [datetime.date(2099, 1, 1), datetime.date(2099, 1, 2)]
 
-    assert np.array_equal(vparse_date(np.array(datestrs)), dateobjs)
+    result = vparse_date(pl.Series(datestrs))
+    expected = pl.Series(dateobjs)
+
+    assert result.equals(expected)
 
 
 def test_parse_time():
-    assert parse_time(np.nan) is np.nan
-    assert parse_time("") is np.nan
-    assert parse_time("  ") is np.nan
+    val = parse_time(float("nan"))
+    assert val is not None and math.isnan(val)
+
+    val = parse_time("")
+    assert val is not None and math.isnan(val)
+
+    val = parse_time("  ")
+    assert val is not None and math.isnan(val)
+
     assert parse_time("00:00:00") == 0
     assert parse_time("0:00:00") == 0
     assert parse_time("01:02:03") == 3723
@@ -45,6 +54,9 @@ def test_parse_time_with_invalid_input():
 
 def test_vparse_time():
     timestrs = ["00:00:00", "250:24:23"]
-    timeints = [0, 901463]
+    timeints = [0.0, 901463.0]
 
-    assert np.array_equal(vparse_time(np.array(timestrs)), timeints)
+    result = vparse_time(pl.Series(timestrs))
+    expected = pl.Series(timeints)
+
+    assert result.equals(expected)

@@ -10,13 +10,6 @@ from .types import View
 from .utilities import detect_encoding, empty_df, setwrap
 
 
-def _read_file(filename: str) -> property:
-    def getter(self) -> pl.DataFrame:
-        return self.get(filename)
-
-    return property(getter)
-
-
 class Feed(object):
     def __init__(
         self,
@@ -57,19 +50,57 @@ class Feed(object):
         with lock:
             self._cache[filename] = df
 
-    agency = _read_file("agency.txt")
-    calendar = _read_file("calendar.txt")
-    calendar_dates = _read_file("calendar_dates.txt")
-    fare_attributes = _read_file("fare_attributes.txt")
-    fare_rules = _read_file("fare_rules.txt")
-    feed_info = _read_file("feed_info.txt")
-    frequencies = _read_file("frequencies.txt")
-    routes = _read_file("routes.txt")
-    shapes = _read_file("shapes.txt")
-    stops = _read_file("stops.txt")
-    stop_times = _read_file("stop_times.txt")
-    transfers = _read_file("transfers.txt")
-    trips = _read_file("trips.txt")
+    @property
+    def stops(self):
+        return self.get("stops.txt")
+
+    @property
+    def stop_times(self):
+        return self.get("stop_times.txt")
+
+    @property
+    def trips(self):
+        return self.get("trips.txt")
+
+    @property
+    def routes(self):
+        return self.get("routes.txt")
+
+    @property
+    def agency(self):
+        return self.get("agency.txt")
+
+    @property
+    def calendar(self):
+        return self.get("calendar.txt")
+
+    @property
+    def calendar_dates(self):
+        return self.get("calendar_dates.txt")
+
+    @property
+    def fare_attributes(self):
+        return self.get("fare_attributes.txt")
+
+    @property
+    def fare_rules(self):
+        return self.get("fare_rules.txt")
+
+    @property
+    def feed_info(self):
+        return self.get("feed_info.txt")
+
+    @property
+    def frequencies(self):
+        return self.get("frequencies.txt")
+
+    @property
+    def shapes(self):
+        return self.get("shapes.txt")
+
+    @property
+    def transfers(self):
+        return self.get("transfers.txt")
 
     def _bootstrap(self, path: str) -> None:
         # Walk recursively through the directory
@@ -152,7 +183,7 @@ class Feed(object):
                 depcol = deps[depfile]
                 # If applicable, prune this dataframe by the other
                 if col in df.columns and depcol in depdf.columns:
-                    df = df.filter(pl.col(col).is_in(depdf[depcol]))
+                    df = df.filter(pl.col(col).is_in(depdf[depcol].implode()))
 
         return df
 
@@ -185,56 +216,3 @@ class Feed(object):
             df = transform(df)
 
         return df
-
-    # Adding explicit property access for compatibility
-    @property
-    def stops(self):
-        return self.get("stops.txt")
-
-    @property
-    def stop_times(self):
-        return self.get("stop_times.txt")
-
-    @property
-    def trips(self):
-        return self.get("trips.txt")
-
-    @property
-    def routes(self):
-        return self.get("routes.txt")
-
-    @property
-    def agency(self):
-        return self.get("agency.txt")
-
-    @property
-    def calendar(self):
-        return self.get("calendar.txt")
-
-    @property
-    def calendar_dates(self):
-        return self.get("calendar_dates.txt")
-
-    @property
-    def fare_attributes(self):
-        return self.get("fare_attributes.txt")
-
-    @property
-    def fare_rules(self):
-        return self.get("fare_rules.txt")
-
-    @property
-    def feed_info(self):
-        return self.get("feed_info.txt")
-
-    @property
-    def frequencies(self):
-        return self.get("frequencies.txt")
-
-    @property
-    def shapes(self):
-        return self.get("shapes.txt")
-
-    @property
-    def transfers(self):
-        return self.get("transfers.txt")

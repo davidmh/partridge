@@ -2,7 +2,8 @@ import datetime
 from functools import lru_cache
 from typing import Optional, Union
 import polars as pl
-import numpy as np
+import math
+
 
 DATE_FORMAT = "%Y%m%d"
 
@@ -12,13 +13,13 @@ DATE_FORMAT = "%Y%m%d"
 def parse_time(val: Optional[Union[str, float]]) -> Optional[float]:
     if val is None:
         return None
-    if isinstance(val, float) and np.isnan(val):
-        return np.nan
+    if isinstance(val, float) and math.isnan(val):
+        return float("nan")
 
-    val = val.strip()
+    val = str(val).strip()
 
     if val == "":
-        return np.nan
+        return float("nan")
 
     try:
         h, m, s = val.split(":")

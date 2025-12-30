@@ -1,6 +1,5 @@
 import io
 import networkx as nx
-import pytest
 import polars as pl
 from partridge.utilities import (
     detect_encoding,

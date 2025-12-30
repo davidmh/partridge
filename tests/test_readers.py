@@ -1,6 +1,5 @@
 import datetime
 
-import numpy as np
 import partridge as ptg
 import polars as pl
 import pytest

@@ -53,12 +53,13 @@ dependency-graph.png:
 
 dot: dependency-graph.png
 
-black:
-	uv run black partridge tests
+lint: ## check style with ruff
+	uv run ruff check partridge tests
+	uv run ruff format --check partridge tests
 
-lint: ## check style with black
-	uv run black --check --diff partridge tests
-	uv run flake8
+format: ## format code with ruff
+	uv run ruff check --fix partridge tests
+	uv run ruff format partridge tests
 
 type-check:
 	uv run mypy partridge --ignore-missing-imports
