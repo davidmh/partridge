@@ -45,6 +45,7 @@ dev = [
     "sphinx",
     "watchdog",
     "twine",
+    "sphinx-autodoc-annotation>=1.0.post1",
 ]
 
 [tool.setuptools]
