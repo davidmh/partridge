@@ -31,7 +31,10 @@ dependencies = [
 Homepage = "https://github.com/remix/partridge"
 
 [project.optional-dependencies]
-full = ["geopandas"]
+full = [
+    "geopolars>=0.1.0a4",
+    "shapely>=2.0.7",
+]
 
 [dependency-groups]
 dev = [
