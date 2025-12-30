@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-import pandas as pd
+import polars as pl
 
 try:
     import geopandas as gpd
@@ -14,26 +14,42 @@ except ImportError as impexc:
 DEFAULT_CRS = {"init": "EPSG:4326"}
 
 
-def build_shapes(df: pd.DataFrame) -> gpd.GeoDataFrame:
-    if df.empty:
+def build_shapes(df: pl.DataFrame) -> gpd.GeoDataFrame:
+    if df.is_empty():
         return gpd.GeoDataFrame({"shape_id": [], "geometry": []}, crs=DEFAULT_CRS)
 
     data: Dict[str, List] = {"shape_id": [], "geometry": []}
-    for shape_id, shape in df.sort_values("shape_pt_sequence").groupby("shape_id"):
-        data["shape_id"].append(shape_id)
-        data["geometry"].append(
-            LineString(list(zip(shape.shape_pt_lon, shape.shape_pt_lat)))
-        )
+
+    # Sort and group
+    df_sorted = df.sort("shape_pt_sequence")
+
+    # Efficiently group by shape_id and collect coordinates
+    for shape_id, shape_df in df_sorted.group_by("shape_id", maintain_order=True):
+        shape_id_val = shape_id[0] if isinstance(shape_id, tuple) else shape_id
+        data["shape_id"].append(shape_id_val)
+
+        lons = shape_df["shape_pt_lon"].to_list()
+        lats = shape_df["shape_pt_lat"].to_list()
+
+        data["geometry"].append(LineString(list(zip(lons, lats))))
 
     return gpd.GeoDataFrame(data, crs=DEFAULT_CRS)
 
 
-def build_stops(df: pd.DataFrame) -> gpd.GeoDataFrame:
-    if df.empty:
-        return gpd.GeoDataFrame(df, geometry=[], crs=DEFAULT_CRS)
+def build_stops(df: pl.DataFrame) -> gpd.GeoDataFrame:
+    if df.is_empty():
+        # Create empty GeoDataFrame with correct columns
+        return gpd.GeoDataFrame(
+            {c: [] for c in df.columns}, geometry=[], crs=DEFAULT_CRS
+        )
 
-    df["geometry"] = df.apply(lambda s: Point(s.stop_lon, s.stop_lat), axis=1)
+    # Use list comprehension for better performance than apply
+    lons = df["stop_lon"].to_list()
+    lats = df["stop_lat"].to_list()
+    geometry = [Point(lon, lat) for lon, lat in zip(lons, lats)]
 
-    df.drop(["stop_lon", "stop_lat"], axis=1, inplace=True)
+    # Create GeoDataFrame directly from Polars dict to avoid pandas dependency
+    data = df.drop(["stop_lon", "stop_lat"]).to_dict(as_series=False)
+    data["geometry"] = geometry
 
-    return gpd.GeoDataFrame(df, crs={"init": "EPSG:4326"})
+    return gpd.GeoDataFrame(data, crs={"init": "EPSG:4326"})

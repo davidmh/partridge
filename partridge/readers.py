@@ -8,6 +8,7 @@ import weakref
 
 from isoweek import Week
 import networkx as nx
+import polars as pl
 
 from .config import default_config, geo_config, empty_config, reroot_graph
 from .gtfs import Feed
@@ -153,49 +154,53 @@ def _service_ids_by_date(feed: Feed) -> Dict[datetime.date, FrozenSet[str]]:
     results: DefaultDict[datetime.date, Set[str]] = defaultdict(set)
     removals: DefaultDict[datetime.date, Set[str]] = defaultdict(set)
 
-    service_ids = set(feed.trips.service_id)
+    service_ids = set(feed.trips["service_id"].to_list())
     calendar = feed.calendar
     caldates = feed.calendar_dates
 
-    if not calendar.empty:
+    if not calendar.is_empty():
         # Only consider calendar.txt rows with applicable trips
-        calendar = calendar[calendar.service_id.isin(service_ids)].copy()
+        calendar = calendar.filter(pl.col("service_id").is_in(service_ids))
 
-    if not caldates.empty:
+    if not caldates.is_empty():
         # Only consider calendar_dates.txt rows with applicable trips
-        caldates = caldates[caldates.service_id.isin(service_ids)].copy()
+        caldates = caldates.filter(pl.col("service_id").is_in(service_ids))
 
-    if not calendar.empty:
+    if not calendar.is_empty():
         # Parse dates
-        calendar.start_date = vparse_date(calendar.start_date)
-        calendar.end_date = vparse_date(calendar.end_date)
+        calendar = calendar.with_columns(
+            [
+                vparse_date(calendar["start_date"]).alias("start_date"),
+                vparse_date(calendar["end_date"]).alias("end_date"),
+            ]
+        )
 
         # Build up results dict from calendar ranges
-        for _, cal in calendar.iterrows():
-            start = cal.start_date.toordinal()
-            end = cal.end_date.toordinal()
+        for row in calendar.iter_rows(named=True):
+            start = row["start_date"].toordinal()
+            end = row["end_date"].toordinal()
 
-            dow = {i: cal[day] for i, day in enumerate(DAY_NAMES)}
+            dow = {i: row[day] for i, day in enumerate(DAY_NAMES)}
             for ordinal in range(start, end + 1):
                 date = datetime.date.fromordinal(ordinal)
                 if int(dow[date.weekday()]):
-                    results[date].add(cal.service_id)
+                    results[date].add(row["service_id"])
 
-    if not caldates.empty:
+    if not caldates.is_empty():
         # Parse dates
-        caldates.date = vparse_date(caldates.date)
+        caldates = caldates.with_columns(vparse_date(caldates["date"]).alias("date"))
 
         # Split out additions and removals
-        cdadd = caldates[caldates.exception_type == "1"]
-        cdrem = caldates[caldates.exception_type == "2"]
+        cdadd = caldates.filter(pl.col("exception_type") == "1")
+        cdrem = caldates.filter(pl.col("exception_type") == "2")
 
         # Add to results by date
-        for _, cd in cdadd.iterrows():
-            results[cd.date].add(cd.service_id)
+        for row in cdadd.iter_rows(named=True):
+            results[row["date"]].add(row["service_id"])
 
         # Collect removals
-        for _, cd in cdrem.iterrows():
-            removals[cd.date].add(cd.service_id)
+        for row in cdrem.iter_rows(named=True):
+            removals[row["date"]].add(row["service_id"])
 
         # Finally, process removals by date
         for date in removals:
@@ -223,7 +228,7 @@ def _trip_counts_by_date(feed: Feed) -> Dict[datetime.date, int]:
     results: DefaultDict[datetime.date, int] = defaultdict(int)
     trips = feed.trips
     for service_ids, dates in _dates_by_service_ids(feed).items():
-        trip_count = trips[trips.service_id.isin(service_ids)].shape[0]
+        trip_count = trips.filter(pl.col("service_id").is_in(service_ids)).height
         for date in dates:
             results[date] += trip_count
     return dict(results)

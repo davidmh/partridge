@@ -1,9 +1,17 @@
 # flake8: noqa E501
 
 import networkx as nx
-import pandas as pd
+import polars as pl
 
 from .parsers import vparse_date, vparse_time
+
+
+def to_numeric(s: pl.Series) -> pl.Series:
+    return s.cast(pl.Float64, strict=False)
+
+
+def to_int(s: pl.Series) -> pl.Series:
+    return s.cast(pl.Int64, strict=False)
 
 
 def empty_config() -> nx.DiGraph:
@@ -146,13 +154,13 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                     "converters": {
                         "start_date": vparse_date,
                         "end_date": vparse_date,
-                        "monday": pd.to_numeric,
-                        "tuesday": pd.to_numeric,
-                        "wednesday": pd.to_numeric,
-                        "thursday": pd.to_numeric,
-                        "friday": pd.to_numeric,
-                        "saturday": pd.to_numeric,
-                        "sunday": pd.to_numeric,
+                        "monday": to_numeric,
+                        "tuesday": to_numeric,
+                        "wednesday": to_numeric,
+                        "thursday": to_numeric,
+                        "friday": to_numeric,
+                        "saturday": to_numeric,
+                        "sunday": to_numeric,
                     },
                     "required_columns": (
                         "service_id",
@@ -173,7 +181,7 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                 {
                     "converters": {
                         "date": vparse_date,
-                        "exception_type": pd.to_numeric,
+                        "exception_type": to_numeric,
                     },
                     "required_columns": ("service_id", "date", "exception_type"),
                 },
@@ -182,9 +190,9 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                 "fare_attributes.txt",
                 {
                     "converters": {
-                        "price": pd.to_numeric,
-                        "payment_method": pd.to_numeric,
-                        "transfer_duration": pd.to_numeric,
+                        "price": to_numeric,
+                        "payment_method": to_numeric,
+                        "transfer_duration": to_numeric,
                     },
                     "required_columns": (
                         "fare_id",
@@ -214,8 +222,8 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                 "frequencies.txt",
                 {
                     "converters": {
-                        "headway_secs": pd.to_numeric,
-                        "exact_times": pd.to_numeric,
+                        "headway_secs": to_numeric,
+                        "exact_times": to_numeric,
                         "start_time": vparse_time,
                         "end_time": vparse_time,
                     },
@@ -230,7 +238,7 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
             (
                 "routes.txt",
                 {
-                    "converters": {"route_type": pd.to_numeric},
+                    "converters": {"route_type": to_numeric},
                     "required_columns": (
                         "route_id",
                         "route_short_name",
@@ -243,10 +251,10 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                 "shapes.txt",
                 {
                     "converters": {
-                        "shape_pt_lat": pd.to_numeric,
-                        "shape_pt_lon": pd.to_numeric,
-                        "shape_pt_sequence": pd.to_numeric,
-                        "shape_dist_traveled": pd.to_numeric,
+                        "shape_pt_lat": to_numeric,
+                        "shape_pt_lon": to_numeric,
+                        "shape_pt_sequence": to_numeric,
+                        "shape_dist_traveled": to_numeric,
                     },
                     "required_columns": (
                         "shape_id",
@@ -260,14 +268,14 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                 "stops.txt",
                 {
                     "converters": {
-                        "stop_lat": pd.to_numeric,
-                        "stop_lon": pd.to_numeric,
-                        "location_type": pd.to_numeric,
-                        "wheelchair_boarding": pd.to_numeric,
-                        "pickup_type": pd.to_numeric,
-                        "drop_off_type": pd.to_numeric,
-                        "shape_dist_traveled": pd.to_numeric,
-                        "timepoint": pd.to_numeric,
+                        "stop_lat": to_numeric,
+                        "stop_lon": to_numeric,
+                        "location_type": to_numeric,
+                        "wheelchair_boarding": to_numeric,
+                        "pickup_type": to_numeric,
+                        "drop_off_type": to_numeric,
+                        "shape_dist_traveled": to_numeric,
+                        "timepoint": to_numeric,
                     },
                     "required_columns": (
                         "stop_id",
@@ -283,10 +291,10 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                     "converters": {
                         "arrival_time": vparse_time,
                         "departure_time": vparse_time,
-                        "pickup_type": pd.to_numeric,
-                        "shape_dist_traveled": pd.to_numeric,
-                        "stop_sequence": pd.to_numeric,
-                        "timepoint": pd.to_numeric,
+                        "pickup_type": to_numeric,
+                        "shape_dist_traveled": to_numeric,
+                        "stop_sequence": to_int,
+                        "timepoint": to_numeric,
                     },
                     "required_columns": (
                         "trip_id",
@@ -301,8 +309,8 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                 "transfers.txt",
                 {
                     "converters": {
-                        "transfer_type": pd.to_numeric,
-                        "min_transfer_time": pd.to_numeric,
+                        "transfer_type": to_numeric,
+                        "min_transfer_time": to_numeric,
                     },
                     "required_columns": ("from_stop_id", "to_stop_id", "transfer_type"),
                 },
@@ -311,9 +319,9 @@ def add_node_config(g: nx.DiGraph) -> nx.DiGraph:
                 "trips.txt",
                 {
                     "converters": {
-                        "direction_id": pd.to_numeric,
-                        "wheelchair_accessible": pd.to_numeric,
-                        "bikes_allowed": pd.to_numeric,
+                        "direction_id": to_numeric,
+                        "wheelchair_accessible": to_numeric,
+                        "bikes_allowed": to_numeric,
                     },
                     "required_columns": ("route_id", "service_id", "trip_id"),
                 },

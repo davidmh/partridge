@@ -39,9 +39,9 @@ def write_feed_dangerously(
 
         def write_node(node):
             df = feed.get(node)
-            if not df.empty:
+            if not df.is_empty():
                 path = os.path.join(tmpdir, node)
-                df.to_csv(path, index=False)
+                df.write_csv(path)
 
         pool = ThreadPool(len(nodes))
         try:

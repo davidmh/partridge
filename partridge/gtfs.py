@@ -3,7 +3,7 @@ from threading import RLock
 from typing import Dict, Optional, Union
 
 import networkx as nx
-import pandas as pd
+import polars as pl
 
 from .config import default_config
 from .types import View
@@ -11,7 +11,7 @@ from .utilities import detect_encoding, empty_df, setwrap
 
 
 def _read_file(filename: str) -> property:
-    def getter(self) -> pd.DataFrame:
+    def getter(self) -> pl.DataFrame:
         return self.get(filename)
 
     return property(getter)
@@ -26,7 +26,7 @@ class Feed(object):
     ):
         self._config: nx.DiGraph = default_config() if config is None else config
         self._view: View = {} if view is None else view
-        self._cache: Dict[str, pd.DataFrame] = {}
+        self._cache: Dict[str, pl.DataFrame] = {}
         self._pathmap: Dict[str, str] = {}
         self._delete_after_reading: bool = False
         self._shared_lock = RLock()
@@ -39,7 +39,7 @@ class Feed(object):
         else:
             raise ValueError("Invalid source")
 
-    def get(self, filename: str) -> pd.DataFrame:
+    def get(self, filename: str) -> pl.DataFrame:
         lock = self._locks.get(filename, self._shared_lock)
         with lock:
             df = self._cache.get(filename)
@@ -47,13 +47,12 @@ class Feed(object):
                 df = self._read(filename)
                 df = self._filter(filename, df)
                 df = self._prune(filename, df)
-                self._convert_types(filename, df)
-                df = df.reset_index(drop=True)
+                df = self._convert_types(filename, df)
                 df = self._transform(filename, df)
                 self.set(filename, df)
             return self._cache[filename]
 
-    def set(self, filename: str, df: pd.DataFrame) -> None:
+    def set(self, filename: str, df: pl.DataFrame) -> None:
         lock = self._locks.get(filename, self._shared_lock)
         with lock:
             self._cache[filename] = df
@@ -85,7 +84,7 @@ class Feed(object):
                 # Build a lock for each file to synchronize reads.
                 self._locks[basename] = RLock()
 
-    def _read_csv(self, filename: str) -> pd.DataFrame:
+    def _read_csv(self, filename: str) -> pl.DataFrame:
         path = self._pathmap.get(filename)
         columns = self._config.nodes.get(filename, {}).get("required_columns", [])
 
@@ -98,19 +97,26 @@ class Feed(object):
         with open(path, "rb") as f:
             encoding = detect_encoding(f)
 
-        df = pd.read_csv(path, dtype=str, encoding=encoding, index_col=False)
+        try:
+            df = pl.read_csv(
+                path,
+                infer_schema_length=0,
+                encoding=encoding,
+                ignore_errors=True,
+            )
+        except pl.exceptions.ComputeError:
+            return empty_df(columns)
 
         # Strip leading/trailing whitespace from column names
-        df.rename(columns=lambda x: x.strip(), inplace=True)
+        df = df.rename({col: col.strip() for col in df.columns})
 
-        if not df.empty:
+        if not df.is_empty():
             # Strip leading/trailing whitespace from column values
-            for col in df.columns:
-                df[col] = df[col].str.strip()
+            df = df.select([pl.col(col).str.strip_chars() for col in df.columns])
 
         return df
 
-    def _filter(self, filename: str, df: pd.DataFrame) -> pd.DataFrame:
+    def _filter(self, filename: str, df: pl.DataFrame) -> pl.DataFrame:
         """Apply view filters"""
         view = self._view.get(filename)
         if view is None:
@@ -119,11 +125,11 @@ class Feed(object):
         for col, values in view.items():
             # If applicable, filter this dataframe by the given set of values
             if col in df.columns:
-                df = df[df[col].isin(setwrap(values))]
+                df = df.filter(pl.col(col).is_in(setwrap(values)))
 
         return df
 
-    def _prune(self, filename: str, df: pd.DataFrame) -> pd.DataFrame:
+    def _prune(self, filename: str, df: pl.DataFrame) -> pl.DataFrame:
         """Depth-first search through the dependency graph
         and prune dependent DataFrames along the way.
         """
@@ -146,23 +152,31 @@ class Feed(object):
                 depcol = deps[depfile]
                 # If applicable, prune this dataframe by the other
                 if col in df.columns and depcol in depdf.columns:
-                    df = df[df[col].isin(depdf[depcol])]
+                    df = df.filter(pl.col(col).is_in(depdf[depcol]))
 
         return df
 
-    def _convert_types(self, filename: str, df: pd.DataFrame) -> None:
+    def _convert_types(self, filename: str, df: pl.DataFrame) -> pl.DataFrame:
         """
         Apply type conversions
         """
-        if df.empty:
-            return
+        if df.is_empty():
+            return df
 
         converters = self._config.nodes.get(filename, {}).get("converters", {})
+
+        # Apply converters
+        cols_to_convert = []
         for col, converter in converters.items():
             if col in df.columns:
-                df[col] = converter(df[col])
+                cols_to_convert.append(converter(df[col]).alias(col))
 
-    def _transform(self, filename: str, df: pd.DataFrame) -> pd.DataFrame:
+        if cols_to_convert:
+            df = df.with_columns(cols_to_convert)
+
+        return df
+
+    def _transform(self, filename: str, df: pl.DataFrame) -> pl.DataFrame:
         transformations = self._config.nodes.get(filename, {}).get(
             "transformations", []
         )
@@ -171,3 +185,56 @@ class Feed(object):
             df = transform(df)
 
         return df
+
+    # Adding explicit property access for compatibility
+    @property
+    def stops(self):
+        return self.get("stops.txt")
+
+    @property
+    def stop_times(self):
+        return self.get("stop_times.txt")
+
+    @property
+    def trips(self):
+        return self.get("trips.txt")
+
+    @property
+    def routes(self):
+        return self.get("routes.txt")
+
+    @property
+    def agency(self):
+        return self.get("agency.txt")
+
+    @property
+    def calendar(self):
+        return self.get("calendar.txt")
+
+    @property
+    def calendar_dates(self):
+        return self.get("calendar_dates.txt")
+
+    @property
+    def fare_attributes(self):
+        return self.get("fare_attributes.txt")
+
+    @property
+    def fare_rules(self):
+        return self.get("fare_rules.txt")
+
+    @property
+    def feed_info(self):
+        return self.get("feed_info.txt")
+
+    @property
+    def frequencies(self):
+        return self.get("frequencies.txt")
+
+    @property
+    def shapes(self):
+        return self.get("shapes.txt")
+
+    @property
+    def transfers(self):
+        return self.get("transfers.txt")
