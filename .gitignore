@@ -55,6 +55,7 @@ tests/fixtures/*.zip
 
 # Sphinx documentation
 docs/_build/
+docs/dependency-graph.png
 
 # PyBuilder
 target/

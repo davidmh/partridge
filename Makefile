@@ -1,15 +1,5 @@
 .PHONY: clean clean-test clean-pyc clean-build docs help
 .DEFAULT_GOAL := help
-define BROWSER_PYSCRIPT
-import os, webbrowser, sys
-try:
-	from urllib import pathname2url
-except:
-	from urllib.request import pathname2url
-
-webbrowser.open("file://" + pathname2url(os.path.abspath(sys.argv[1])))
-endef
-export BROWSER_PYSCRIPT
 
 define PRINT_HELP_PYSCRIPT
 import re, sys
@@ -21,7 +11,7 @@ for line in sys.stdin:
 		print("%-20s %s" % (target, help))
 endef
 export PRINT_HELP_PYSCRIPT
-BROWSER := uv run python -c "$$BROWSER_PYSCRIPT"
+OPEN := xdg-open $1 || open $1
 
 help:
 	@uv run python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
@@ -72,7 +62,7 @@ coverage: ## check code coverage quickly with the default Python
 	uv run coverage run --source partridge -m pytest
 	uv run coverage report -m
 	uv run coverage html
-	$(BROWSER) htmlcov/index.html
+	$(OPEN) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/partridge.rst
@@ -80,7 +70,7 @@ docs: ## generate Sphinx HTML documentation, including API docs
 	uv run sphinx-apidoc -o docs/ partridge
 	$(MAKE) -C docs clean SPHINXBUILD="uv run sphinx-build"
 	$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"
-	$(BROWSER) docs/_build/html/index.html
+	$(OPEN) docs/_build/html/index.html
 
 servedocs: docs ## compile the docs watching for changes
 	uv run watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"' -R -D .

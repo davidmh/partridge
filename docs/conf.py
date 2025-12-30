@@ -15,6 +15,7 @@
 
 import sys
 import os
+import shutil
 
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is
@@ -25,6 +26,12 @@ import os
 # Get the project root dir, which is the parent dir of this
 cwd = os.getcwd()
 project_root = os.path.dirname(cwd)
+
+# Copy the dependency graph image to the docs directory, so sphinx can read it.
+shutil.copyfile(
+    os.path.join(project_root, "dependency-graph.png"),
+    os.path.join(cwd, "dependency-graph.png"),
+)
 
 # Insert the project root dir as the first element in the PYTHONPATH.
 # This lets us ensure that the source package is imported, and that its
