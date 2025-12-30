@@ -21,10 +21,10 @@ for line in sys.stdin:
 		print("%-20s %s" % (target, help))
 endef
 export PRINT_HELP_PYSCRIPT
-BROWSER := python -c "$$BROWSER_PYSCRIPT"
+BROWSER := uv run python -c "$$BROWSER_PYSCRIPT"
 
 help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	@uv run python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
@@ -54,44 +54,42 @@ dependency-graph.png:
 dot: dependency-graph.png
 
 black:
-	black partridge tests
+	uv run black partridge tests
 
 lint: ## check style with black
-	black --check --diff partridge tests
-	flake8
+	uv run black --check --diff partridge tests
+	uv run flake8
 
 type-check:
-	mypy partridge --ignore-missing-imports
+	uv run mypy partridge --ignore-missing-imports
 
 ## run tests quickly with the default Python
 test: lint type-check
-	py.test
+	uv run pytest
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source partridge -m pytest
-	coverage report -m
-	coverage html
+	uv run coverage run --source partridge -m pytest
+	uv run coverage report -m
+	uv run coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/partridge.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ partridge
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
+	uv run sphinx-apidoc -o docs/ partridge
+	$(MAKE) -C docs clean SPHINXBUILD="uv run sphinx-build"
+	$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"
 	$(BROWSER) docs/_build/html/index.html
 
 servedocs: docs ## compile the docs watching for changes
-	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
+	uv run watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"' -R -D .
 
-release: clean ## package and upload a release
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+release: dist ## package and upload a release
+	uv run twine upload dist/*
 
 dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+	uv build
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+	uv pip install .

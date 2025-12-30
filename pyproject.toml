@@ -38,6 +38,11 @@ dev = [
     "pytest>=7.0.0",
     "black",
     "flake8",
+    "mypy",
+    "coverage",
+    "sphinx",
+    "watchdog",
+    "twine",
 ]
 
 [tool.setuptools]

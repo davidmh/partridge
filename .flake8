@@ -8,5 +8,6 @@ exclude =
     docs
     scratch
     venv
+    .venv
 
 max-line-length = 100
