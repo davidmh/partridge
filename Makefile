@@ -1,4 +1,4 @@
-.PHONY: clean clean-test clean-pyc clean-build docs help
+.PHONY: clean clean-test clean-pyc clean-build docs help sync-full
 .DEFAULT_GOAL := help
 
 define PRINT_HELP_PYSCRIPT
@@ -67,7 +67,7 @@ type-check: $(INSTALL_STAMP)
 	$(UV) run mypy partridge --ignore-missing-imports
 
 ## run tests quickly with the default Python
-test: lint type-check
+test: sync-full lint type-check
 	$(UV) run pytest
 
 coverage: $(INSTALL_STAMP) ## check code coverage quickly with the default Python
@@ -96,6 +96,9 @@ dist: clean $(INSTALL_STAMP) ## builds source and wheel package
 
 install: clean $(INSTALL_STAMP) ## install the package to the active Python's site-packages
 	$(UV) pip install .
+
+sync-full: $(INSTALL_STAMP) ## install all the packages defined in the extras, useful for tests
+	$(SYNC) --all-extras
 
 $(VIRTUAL_ENV):
 	$(UV) venv $@
