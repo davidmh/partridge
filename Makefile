@@ -13,6 +13,18 @@ endef
 export PRINT_HELP_PYSCRIPT
 OPEN := xdg-open $1 || open $1
 
+# Virtual environment location
+VIRTUAL_ENV = $(abspath .venv)
+INSTALL_STAMP = $(VIRTUAL_ENV)/.install_stamp
+UV := uv
+
+# verbosity
+V = 0
+
+SYNC_0 = $(UV) sync --frozen -q
+SYNC_1 = $(UV) sync --frozen
+SYNC = $(SYNC_$(V))
+
 help:
 	@uv run python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
@@ -43,44 +55,51 @@ dependency-graph.png: dependency-graph.dot
 
 dot: dependency-graph.png
 
-lint: ## check style with ruff
-	uv run ruff check partridge tests
-	uv run ruff format --check partridge tests
+lint: $(INSTALL_STAMP) ## check style with ruff
+	$(UV) run ruff check partridge tests
+	$(UV) run ruff format --check partridge tests
 
-format: ## format code with ruff
-	uv run ruff check --fix partridge tests
-	uv run ruff format partridge tests
+format: $(INSTALL_STAMP) ## format code with ruff
+	$(UV) run ruff check --fix partridge tests
+	$(UV) run ruff format partridge tests
 
-type-check:
-	uv run mypy partridge --ignore-missing-imports
+type-check: $(INSTALL_STAMP)
+	$(UV) run mypy partridge --ignore-missing-imports
 
 ## run tests quickly with the default Python
 test: lint type-check
-	uv run pytest
+	$(UV) run pytest
 
-coverage: ## check code coverage quickly with the default Python
-	uv run coverage run --source partridge -m pytest
-	uv run coverage report -m
-	uv run coverage html
+coverage: $(INSTALL_STAMP) ## check code coverage quickly with the default Python
+	$(UV) run coverage run --source partridge -m pytest
+	$(UV) run coverage report -m
+	$(UV) run coverage html
 	$(OPEN) htmlcov/index.html
 
-docs: ## generate Sphinx HTML documentation, including API docs
+docs: $(INSTALL_STAMP) ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/partridge.rst
 	rm -f docs/modules.rst
-	uv run sphinx-apidoc -o docs/ partridge
+	$(UV) run sphinx-apidoc -o docs/ partridge
 	$(MAKE) -C docs clean SPHINXBUILD="uv run sphinx-build"
 	$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"
 	$(OPEN) docs/_build/html/index.html
 
 servedocs: docs ## compile the docs watching for changes
-	uv run watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"' -R -D .
+	$(UV) run watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"' -R -D .
 
 release: dist ## package and upload a release
-	uv run twine upload dist/*
+	$(UV) run twine upload dist/*
 
-dist: clean ## builds source and wheel package
-	uv build
+dist: clean $(INSTALL_STAMP) ## builds source and wheel package
+	$(UV) build
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-	uv pip install .
+install: clean $(INSTALL_STAMP) ## install the package to the active Python's site-packages
+	$(UV) pip install .
+
+$(VIRTUAL_ENV):
+	$(UV) venv $@
+
+$(INSTALL_STAMP): pyproject.toml uv.lock $(VIRTUAL_ENV)
+	$(SYNC)
+	touch $@
