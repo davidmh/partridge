@@ -6,6 +6,7 @@
   languages.python = {
     enable = true;
     uv.enable = true;
+    version = "3.14";
   };
 
   packages = with pkgs; [
