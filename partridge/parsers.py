@@ -37,6 +37,10 @@ def vparse_time(s: pl.Series) -> pl.Series:
     if not isinstance(s, pl.Series):
         s = pl.Series(s)
 
+    # If already numeric (Float64, Int64, etc.), return as Float64
+    if s.dtype.is_numeric():
+        return s.cast(pl.Float64)
+
     # Capture 3 groups: Hours, Minutes, Seconds.
     # The regex allows for leading/trailing whitespace.
     # It strictly matches h:m:s format.
@@ -55,4 +59,9 @@ def vparse_time(s: pl.Series) -> pl.Series:
 def vparse_date(s: pl.Series) -> pl.Series:
     if not isinstance(s, pl.Series):
         s = pl.Series(s)
+
+    # If already a Date type, return as-is
+    if s.dtype == pl.Date:
+        return s
+
     return s.str.strptime(pl.Date, DATE_FORMAT, strict=False)

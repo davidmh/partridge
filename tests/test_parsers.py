@@ -60,3 +60,25 @@ def test_vparse_time():
     expected = pl.Series(timeints)
 
     assert result.equals(expected)
+
+
+def test_vparse_time_already_parsed():
+    """vparse_time should handle already-parsed numeric values."""
+    timeints = [0.0, 901463.0, 3723.0]
+    series = pl.Series(timeints)
+
+    result = vparse_time(series)
+
+    assert result.dtype == pl.Float64
+    assert result.equals(series)
+
+
+def test_vparse_date_already_parsed():
+    """vparse_date should handle already-parsed date values."""
+    dateobjs = [datetime.date(2099, 1, 1), datetime.date(2099, 1, 2)]
+    series = pl.Series(dateobjs)
+
+    result = vparse_date(series)
+
+    assert result.dtype == pl.Date
+    assert result.equals(series)
