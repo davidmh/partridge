@@ -10,7 +10,7 @@ Partridge
         :target: https://travis-ci.org/remix/partridge
 
 
-Partridge is a Python 3.6+ library for working with `GTFS <https://developers.google.com/transit/gtfs/>`__ feeds using `pandas <https://pandas.pydata.org/>`__ DataFrames.
+Partridge is a Python library for working with `GTFS <https://developers.google.com/transit/gtfs/>`__ feeds using `polars <https://pola.rs/>`__ DataFrames.
 
 Partridge is heavily influenced by our experience at `Remix <https://www.remix.com/>`__ analyzing and debugging every GTFS feed we could find.
 
@@ -45,14 +45,14 @@ Installation
 
 .. code:: console
 
-    pip install partridge
+    uv add partridge
 
 
-**GeoPandas support**
+`GeoPolars <https://github.com/pola-rs/geopolars>`__ support
 
 .. code:: console
 
-    pip install partridge[full]
+    uv add partridge[full]
 
 
 Usage
@@ -164,15 +164,21 @@ Reading a feed
     feed = ptg.load_geo_feed(path, view)
 
     feed.shapes.head()
-    #       shape_id                                           geometry
-    #  0  cal_gil_sf  LINESTRING (-121.5661454200744 37.003512297983...
-    #  1  cal_sf_gil  LINESTRING (-122.3944115638733 37.776439059278...
-    #  2   cal_sf_sj  LINESTRING (-122.3944115638733 37.776439059278...
-    #  3  cal_sf_tam  LINESTRING (-122.3944115638733 37.776439059278...
-    #  4   cal_sj_sf  LINESTRING (-121.9031703472137 37.330157067882...
+    #  shape: (5, 2)
+    #  ┌────────────┬───────────────────────────────────┐
+    #  │ shape_id   ┆ geometry                          │
+    #  │ ---        ┆ ---                               │
+    #  │ str        ┆ object                            │
+    #  ╞════════════╪═══════════════════════════════════╡
+    #  │ cal_gil_sf ┆ LINESTRING (-121.5661454200744... │
+    #  │ cal_sf_gil ┆ LINESTRING (-122.3944115638733... │
+    #  │ cal_sf_sj  ┆ LINESTRING (-122.3944115638733... │
+    #  │ cal_sf_tam ┆ LINESTRING (-122.3944115638733... │
+    #  │ cal_sj_sf  ┆ LINESTRING (-121.9031703472137... │
+    #  └────────────┴───────────────────────────────────┘
 
-    minlon, minlat, maxlon, maxlat = feed.stops.total_bounds
-    #  -122.412076, 37.003485, -121.566088, 37.77639
+    # Note: GeoPolars is currently in alpha stage.
+    # The geometry column contains Shapely objects.
 
 
 Extracting a new feed

@@ -1,9 +1,16 @@
-from typing import Any, Dict, Iterable, Optional, Set, BinaryIO, Union
+from typing import Any, Iterable, Optional, Set, BinaryIO, Union, Generator
 
 from charset_normalizer import detect
 import networkx as nx
-import pandas as pd
-from pandas.core.common import flatten
+import polars as pl
+
+
+def flatten(iterable: Iterable) -> Generator[Any, None, None]:
+    for el in iterable:
+        if isinstance(el, Iterable) and not isinstance(el, (str, bytes)):
+            yield from flatten(el)
+        else:
+            yield el
 
 
 def setwrap(value: Any) -> Set[str]:
@@ -52,10 +59,11 @@ def detect_encoding(f: BinaryIO, limit: int = 2500) -> str:
         return "utf-8"
 
     f.seek(0)
-    return detect(f.read())["encoding"]
+    encoding = detect(f.read())["encoding"]
+    return encoding if encoding is not None else "utf-8"
 
 
-def empty_df(columns: Optional[Iterable[str]] = None) -> pd.DataFrame:
+def empty_df(columns: Optional[Iterable[str]] = None) -> pl.DataFrame:
     columns = [] if columns is None else columns
-    empty: Dict = {col: [] for col in columns}
-    return pd.DataFrame(empty, columns=columns, dtype=str)
+    schema = {col: pl.String for col in columns}
+    return pl.DataFrame(schema=schema)

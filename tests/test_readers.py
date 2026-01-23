@@ -1,7 +1,7 @@
 import datetime
 
-import numpy as np
 import partridge as ptg
+import polars as pl
 import pytest
 
 from .helpers import fixture, zip_file
@@ -9,9 +9,9 @@ from .helpers import fixture, zip_file
 
 def test_load_feed():
     feed = ptg.load_feed(fixture("amazon-2017-08-06"))
-    assert feed.stop_times.dtypes["stop_id"] == object
-    assert feed.stop_times.dtypes["stop_sequence"] == np.int64
-    assert feed.stop_times.dtypes["arrival_time"] == np.float64
+    assert feed.stop_times.schema["stop_id"] == pl.String
+    assert feed.stop_times.schema["stop_sequence"] == pl.Int64
+    assert feed.stop_times.schema["arrival_time"] == pl.Float64
 
 
 def test_load_geo_feed():

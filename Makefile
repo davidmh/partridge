@@ -1,15 +1,5 @@
-.PHONY: clean clean-test clean-pyc clean-build docs help
+.PHONY: clean clean-test clean-pyc clean-build docs help sync-full
 .DEFAULT_GOAL := help
-define BROWSER_PYSCRIPT
-import os, webbrowser, sys
-try:
-	from urllib import pathname2url
-except:
-	from urllib.request import pathname2url
-
-webbrowser.open("file://" + pathname2url(os.path.abspath(sys.argv[1])))
-endef
-export BROWSER_PYSCRIPT
 
 define PRINT_HELP_PYSCRIPT
 import re, sys
@@ -21,10 +11,22 @@ for line in sys.stdin:
 		print("%-20s %s" % (target, help))
 endef
 export PRINT_HELP_PYSCRIPT
-BROWSER := python -c "$$BROWSER_PYSCRIPT"
+OPEN := xdg-open $1 || open $1
+
+# Virtual environment location
+VIRTUAL_ENV = $(abspath .venv)
+INSTALL_STAMP = $(VIRTUAL_ENV)/.install_stamp
+UV := uv
+
+# verbosity
+V = 0
+
+SYNC_0 = $(UV) sync --frozen -q
+SYNC_1 = $(UV) sync --frozen
+SYNC = $(SYNC_$(V))
 
 help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	@uv run python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
@@ -48,50 +50,59 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm tests/fixtures/*.zip || true
 
-dependency-graph.png:
+dependency-graph.png: dependency-graph.dot
 	dot -Tpng dependency-graph.dot -o dependency-graph.png
 
 dot: dependency-graph.png
 
-black:
-	black partridge tests
+lint: $(INSTALL_STAMP) ## check style with ruff
+	$(UV) run ruff check partridge tests
+	$(UV) run ruff format --check partridge tests
 
-lint: ## check style with black
-	black --check --diff partridge tests
-	flake8
+format: $(INSTALL_STAMP) ## format code with ruff
+	$(UV) run ruff check --fix partridge tests
+	$(UV) run ruff format partridge tests
 
-type-check:
-	mypy partridge --ignore-missing-imports
+type-check: $(INSTALL_STAMP)
+	$(UV) run mypy partridge --ignore-missing-imports
 
 ## run tests quickly with the default Python
-test: lint type-check
-	py.test
+test: sync-full lint type-check
+	$(UV) run pytest
 
-coverage: ## check code coverage quickly with the default Python
-	coverage run --source partridge -m pytest
-	coverage report -m
-	coverage html
-	$(BROWSER) htmlcov/index.html
+coverage: $(INSTALL_STAMP) ## check code coverage quickly with the default Python
+	$(UV) run coverage run --source partridge -m pytest
+	$(UV) run coverage report -m
+	$(UV) run coverage html
+	$(OPEN) htmlcov/index.html
 
-docs: ## generate Sphinx HTML documentation, including API docs
+docs: $(INSTALL_STAMP) ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/partridge.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ partridge
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
-	$(BROWSER) docs/_build/html/index.html
+	$(UV) run sphinx-apidoc -o docs/ partridge
+	$(MAKE) -C docs clean SPHINXBUILD="uv run sphinx-build"
+	$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"
+	$(OPEN) docs/_build/html/index.html
 
 servedocs: docs ## compile the docs watching for changes
-	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
+	$(UV) run watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html SPHINXBUILD="uv run sphinx-build"' -R -D .
 
-release: clean ## package and upload a release
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+release: dist ## package and upload a release
+	$(UV) run twine upload dist/*
 
-dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+dist: clean $(INSTALL_STAMP) ## builds source and wheel package
+	$(UV) build
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+install: clean $(INSTALL_STAMP) ## install the package to the active Python's site-packages
+	$(UV) pip install .
+
+sync-full: $(INSTALL_STAMP) ## install all the packages defined in the extras, useful for tests
+	$(SYNC) --all-extras
+
+$(VIRTUAL_ENV):
+	$(UV) venv $@
+
+$(INSTALL_STAMP): pyproject.toml uv.lock $(VIRTUAL_ENV)
+	$(SYNC)
+	touch $@

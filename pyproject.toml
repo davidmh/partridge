@@ -1,0 +1,55 @@
+[project]
+name = "partridge"
+version = "1.1.2"
+description = "Partridge is a library for working with GTFS feeds using `polars` DataFrames."
+readme = "README.rst"
+requires-python = ">=3.8"
+authors = [
+  {name = "Danny Whalen", email = "daniel.r.whalen@gmail.com"}
+]
+license = {text = "MIT license"}
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["partridge", "gtfs", "polars"]
+dependencies = [
+    "charset-normalizer>=3.4.4",
+    "isoweek>=1.3.3",
+    "networkx>=3.0",
+    "polars>=0.20.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/remix/partridge"
+
+[project.optional-dependencies]
+full = [
+    "geopolars>=0.1.0a4",
+    "shapely>=2.0.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "ruff",
+    "mypy",
+    "coverage",
+    "sphinx",
+    "watchdog",
+    "twine",
+    "sphinx-autodoc-annotation>=1.0.post1",
+]
+
+[tool.setuptools]
+packages = ["partridge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -142,9 +142,9 @@ def test_read_file(path, dates, shapes):
         feed = Feed(path)
 
     for filename, shape in shapes.items():
-        assert (
-            feed.get(filename).shape == shape
-        ), "{}/{} dataframe shape was incorrect".format(path, filename)
+        assert feed.get(filename).shape == shape, (
+            "{}/{} dataframe shape was incorrect".format(path, filename)
+        )
 
 
 @pytest.mark.parametrize(
@@ -207,9 +207,9 @@ def test_raw_feed(path, shapes):
     feed = Feed(path, config=empty_config())
 
     for filename, shape in shapes.items():
-        assert (
-            feed.get(filename).shape == shape
-        ), "{}/{} dataframe shape was incorrect".format(path, filename)
+        assert feed.get(filename).shape == shape, (
+            "{}/{} dataframe shape was incorrect".format(path, filename)
+        )
 
 
 @pytest.mark.parametrize(

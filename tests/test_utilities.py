@@ -1,8 +1,6 @@
 import io
 import networkx as nx
-import pytest
-
-import pandas as pd
+import polars as pl
 from partridge.utilities import (
     detect_encoding,
     empty_df,
@@ -42,8 +40,8 @@ def test_remove_node_attributes():
 def test_empty_df():
     actual = empty_df(["foo", "bar"])
 
-    expected = pd.DataFrame(
-        {"foo": [], "bar": []}, columns=["foo", "bar"], dtype=str
+    expected = pl.DataFrame(
+        {"foo": [], "bar": []}, schema={"foo": pl.String, "bar": pl.String}
     )
 
     assert actual.equals(expected)
@@ -61,5 +59,5 @@ def test_detect_encoding():
     # (Note: we don't assert a specific characterset, because we don't want
     # tests to break as changes are made in charset-normalizer. See:
     # https://github.com/remix/partridge/pull/84)
-    enc = detect_encoding(io.BytesIO(b"\xC4pple"))
+    enc = detect_encoding(io.BytesIO(b"\xc4pple"))
     assert enc and enc != "utf-8"
